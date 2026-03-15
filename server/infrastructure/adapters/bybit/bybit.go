@@ -79,8 +79,13 @@ func (adapter *BybitAdapter) getCoinsBalance(ctx context.Context) (interface{}, 
 
 	fmt.Println("RAW DATA \n", balance.Result.(map[string]interface{})["balance"], reflect.TypeOf(balance.Result.(map[string]interface{})["balance"]))
 
-	coinsData := make([]CoinsData, 0)
-	rawCoinsData, ok := balance.Result.(map[string]interface{})["balance"].([]interface{})
+	return adapter.formatCoins(ctx, balance.Result.(map[string]interface{})["balance"])
+}
+
+func (adapter *BybitAdapter) formatCoins(ctx context.Context, data interface{}) ([]Coin, error) {
+	result := make([]Coin, 0)
+
+	rawCoinsData, ok := data.([]interface{})
 	if !ok {
 		// TODO: make norma handle of that error
 		return nil, errors.New("invalid data from bybit endpoint")
@@ -88,35 +93,20 @@ func (adapter *BybitAdapter) getCoinsBalance(ctx context.Context) (interface{}, 
 
 	for _, value := range rawCoinsData {
 
-		coinData := CoinsData{}
+		coin := Coin{}
 
-		if bonus, ok := value.(map[string]interface{})["bonus"]; ok {
-			coinData.bonus = bonus.(string)
-		}
-		if coin, ok := value.(map[string]interface{})["coin"]; ok {
-			coinData.coin = coin.(string)
-		}
-		if transferBalance, ok := value.(map[string]interface{})["transferBalance"]; ok {
-			coinData.transferBalance = transferBalance.(string)
+		if coinData, ok := value.(map[string]interface{})["coin"]; ok {
+			coin.Name = coinData.(string)
 		}
 		if walletBalance, ok := value.(map[string]interface{})["walletBalance"]; ok {
-			coinData.walletBalance = walletBalance.(string)
+			quantity, _ := strconv.ParseFloat(walletBalance.(string), 64)
+			coin.Quantity = quantity
 		}
 
-		coinsData = append(coinsData, coinData)
+		result = append(result, coin)
 	}
 
-	return adapter.formatCoins(ctx, coinsData), nil
-}
-
-func (adapter *BybitAdapter) formatCoins(ctx context.Context, data []CoinsData) []Coin {
-	result := make([]Coin, 0)
-	for _, coin := range data {
-		quantity, _ := strconv.ParseFloat(coin.walletBalance, 64)
-		result = append(result, Coin{Name: coin.coin, Quantity: quantity})
-	}
-
-	return result
+	return result, nil
 }
 
 func (adapter *BybitAdapter) getEarns(ctx context.Context) (interface{}, error) {
