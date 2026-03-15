@@ -28,5 +28,5 @@ func main() {
 
 	adapter := bybit_adapter.Constructor(options)
 
-	adapter.GetEarns(ctx)
+	adapter.GetBalance(ctx)
 }
