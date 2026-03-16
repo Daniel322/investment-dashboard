@@ -5,6 +5,7 @@ import (
 	"fmt"
 	bybit_adapter "investment-dashboard/infrastructure/adapters/bybit"
 	"investment-dashboard/infrastructure/config"
+	"investment-dashboard/interfaces"
 )
 
 func main() {
@@ -21,12 +22,16 @@ func main() {
 	var MOCK_BYBIT_API_KEY, _ = config.Config.BYBIT_API_KEY()
 	var MOCK_BYBIT_SECRET_KEY, _ = config.Config.BYBIT_SECRET_KEY()
 
+	var adapter interfaces.Adapter
+
 	options := bybit_adapter.ConstructorOptions{
 		ApiKey:    MOCK_BYBIT_API_KEY,
 		SecretKey: MOCK_BYBIT_SECRET_KEY,
 	}
 
-	adapter := bybit_adapter.Constructor(options)
+	adapter = bybit_adapter.Constructor(options)
 
-	adapter.GetBalance(ctx)
+	val, _ := adapter.Balance(ctx)
+
+	fmt.Println(val)
 }
