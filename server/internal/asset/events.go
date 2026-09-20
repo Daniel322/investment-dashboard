@@ -15,16 +15,6 @@ type CreateAssetEventData struct {
 
 type CreateAssetEvent = events.Event[CreateAssetEventData]
 
-type UpdateQuantityEventData struct {
-	Quantity float64 `json:"quantity"`
-}
-
-type UpdateQuantityEvent = events.Event[UpdateQuantityEventData]
-
-func (a *Asset) UpdateQuantity(event *UpdateQuantityEvent) {
-	a.Quantity = event.Data.Quantity
-}
-
 type UpdatePriceEventData struct {
 	Price *price.Price `json:"price"`
 }
