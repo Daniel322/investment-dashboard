@@ -3,15 +3,16 @@ package asset
 import (
 	"context"
 	"investment-dashboard/interfaces"
+	"log"
 )
 
-// type EventBus interface {
-// 	Send(ctx context.Context, name string, event any) error
-// }
+type eventBus interface {
+	Publish(ctx context.Context, event interfaces.Event[any])
+}
 
 type CreateAssetCommandHandler struct {
 	Repository interfaces.Repository[AssetRecord, AssetFilter]
-	// Eventbus   EventBus
+	EventBus   eventBus
 }
 
 type CreateAssetCommand struct {
@@ -26,7 +27,19 @@ func (instance *CreateAssetCommandHandler) Handle(
 	ctx context.Context,
 	cmd CreateAssetCommand,
 ) (*AssetRecord, error) {
-	// create entity and validate
+	assetInRepository, err := instance.Repository.Find(ctx, AssetFilter{
+		Name: &cmd.Name,
+		Slug: &cmd.Slug,
+		Type: &cmd.Type,
+	})
+	if err != nil && err != ErrAssetNotFound {
+		return nil, err
+	}
+	if assetInRepository != nil {
+		log.Println("asset already exists in repository", assetInRepository.Name, assetInRepository.Slug, assetInRepository.Type)
+		return assetInRepository, nil
+	}
+
 	asset, err := Create(cmd.Name, cmd.Slug, cmd.Type, cmd.Price, cmd.Rate)
 	if err != nil {
 		return nil, err
@@ -40,7 +53,10 @@ func (instance *CreateAssetCommandHandler) Handle(
 	}
 
 	// publish event
-	// err = instance.Eventbus.Send(ctx, "asset.created", saveResult)
+	instance.EventBus.Publish(ctx, interfaces.Event[any]{
+		Topic:   "asset.created",
+		Payload: saveResult,
+	})
 
 	return saveResult, nil
 }

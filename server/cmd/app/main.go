@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"log"
+	"time"
 
 	"investment-dashboard/infrastructure/config"
 	"investment-dashboard/infrastructure/database"
 	"investment-dashboard/internal/asset"
+	"investment-dashboard/internal/events"
+	"investment-dashboard/pkg/event_bus"
 )
 
 func main() {
@@ -23,8 +26,10 @@ func main() {
 	}
 	defer db.Close()
 
-	assetModule := asset.Init(db)
+	eventBus := event_bus.NewBus()
 
+	events.Init(db, eventBus)
+	assetModule := asset.Init(db, eventBus)
 	price := 0
 	rate := 0
 	res, err := assetModule.CreateAssetCommandHandler.Handle(context.Background(), asset.CreateAssetCommand{
@@ -38,4 +43,8 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println(res)
+
+	for i := 0; i < 10; i++ {
+		time.Sleep(1 * time.Second)
+	}
 }
