@@ -2,17 +2,32 @@ package events
 
 import (
 	"database/sql"
-	"investment-dashboard/pkg/event_bus"
 )
 
-func Init(db *sql.DB, eventBus *event_bus.Bus) {
+type EventsModuleCommands struct{}
+type EventsModuleQueries struct{}
+type EventsModuleHandlers struct {
+	CreateAssetEventHandler *CreateAssetEventHandler
+}
+
+type EventsModule struct {
+	Commands EventsModuleCommands
+	Queries  EventsModuleQueries
+	Handlers EventsModuleHandlers
+}
+
+func Init(db *sql.DB) *EventsModule {
 	repository := &EventsRepository{
 		db: db,
 	}
-	events := &Events{
+	createAssetEventHandler := &CreateAssetEventHandler{
 		Repository: repository,
-		EventBus:   eventBus,
 	}
-
-	go events.SubscribeCreateAsset()
+	return &EventsModule{
+		Commands: EventsModuleCommands{},
+		Queries:  EventsModuleQueries{},
+		Handlers: EventsModuleHandlers{
+			CreateAssetEventHandler: createAssetEventHandler,
+		},
+	}
 }

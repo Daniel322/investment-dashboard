@@ -7,6 +7,7 @@ import (
 
 	"investment-dashboard/infrastructure/config"
 	"investment-dashboard/infrastructure/database"
+	"investment-dashboard/interfaces"
 	"investment-dashboard/internal/asset"
 	"investment-dashboard/internal/events"
 	"investment-dashboard/pkg/event_bus"
@@ -28,11 +29,17 @@ func main() {
 
 	eventBus := event_bus.NewBus()
 
-	events.Init(db, eventBus)
+	eventsModule := events.Init(db)
 	assetModule := asset.Init(db, eventBus)
+	handlers := map[string]interfaces.EventHandler[any]{
+		"asset.created": interfaces.AdaptHandler(eventsModule.Handlers.CreateAssetEventHandler),
+	}
+	// create all handlers map
+	eventBus.SubscribeHandlers(handlers)
+	// subscribe handlers to event bus
 	price := 0
 	rate := 0
-	res, err := assetModule.CreateAssetCommandHandler.Handle(context.Background(), asset.CreateAssetCommand{
+	res, err := assetModule.Commands.CreateAssetCommandHandler.Handle(context.Background(), asset.CreateAssetCommand{
 		Name:  "Bitcoin",
 		Slug:  "BTC",
 		Type:  "crypto",

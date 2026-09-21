@@ -16,7 +16,21 @@ func NewBus() *Bus {
 	return &Bus{subs: make(map[string]map[chan interfaces.Event[any]]struct{})}
 }
 
-func (b *Bus) Subscribe(topic string, buffer int) (<-chan interfaces.Event[any], func()) {
+func (b *Bus) SubscribeHandlers(handlers map[string]interfaces.EventHandler[any]) {
+	for topic, handler := range handlers {
+		go func(topic string, handler interfaces.EventHandler[any]) {
+			ch, unsubscribe := b.subscribe(topic, 1000)
+			defer unsubscribe()
+			for ev := range ch {
+				if err := handler.Handle(ev); err != nil {
+					log.Println("error in event handler:", topic, err)
+				}
+			}
+		}(topic, handler)
+	}
+}
+
+func (b *Bus) subscribe(topic string, buffer int) (<-chan interfaces.Event[any], func()) {
 	ch := make(chan interfaces.Event[any], buffer)
 
 	b.mu.Lock()
@@ -45,7 +59,6 @@ func (b *Bus) Subscribe(topic string, buffer int) (<-chan interfaces.Event[any],
 }
 
 func (b *Bus) Publish(ctx context.Context, ev interfaces.Event[any]) {
-	log.Println("Publish", ev)
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
@@ -55,6 +68,7 @@ func (b *Bus) Publish(ctx context.Context, ev interfaces.Event[any]) {
 		case <-ctx.Done():
 			return
 		default:
+			log.Println("Buffer overflow", ev.Topic)
 			// Буфер переполнен. В зависимости от задачи:
 			// - дропнуть событие,
 			// - залогировать,

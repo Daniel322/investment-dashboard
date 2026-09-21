@@ -5,9 +5,17 @@ import (
 	"investment-dashboard/pkg/event_bus"
 )
 
-type AssetModule struct {
+type AssetModuleCommands struct {
 	CreateAssetCommandHandler *CreateAssetCommandHandler
-	FindAssetQueryHandler     *FindAssetQueryHandler
+}
+type AssetModuleQueries struct {
+	FindAssetQueryHandler *FindAssetQueryHandler
+}
+type AssetModuleHandlers struct{}
+type AssetModule struct {
+	Commands AssetModuleCommands
+	Queries  AssetModuleQueries
+	Handlers AssetModuleHandlers
 }
 
 func Init(db *sql.DB, eventBus *event_bus.Bus) *AssetModule {
@@ -26,7 +34,12 @@ func Init(db *sql.DB, eventBus *event_bus.Bus) *AssetModule {
 	// }
 
 	return &AssetModule{
-		CreateAssetCommandHandler: CreateAssetCommandHandler,
-		FindAssetQueryHandler:     FindAssetQueryHandler,
+		Commands: AssetModuleCommands{
+			CreateAssetCommandHandler: CreateAssetCommandHandler,
+		},
+		Queries: AssetModuleQueries{
+			FindAssetQueryHandler: FindAssetQueryHandler,
+		},
+		Handlers: AssetModuleHandlers{},
 	}
 }
