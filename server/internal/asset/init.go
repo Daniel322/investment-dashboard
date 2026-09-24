@@ -9,7 +9,8 @@ type AssetModuleCommands struct {
 	CreateAssetCommandHandler *CreateAssetCommandHandler
 }
 type AssetModuleQueries struct {
-	FindAssetQueryHandler *FindAssetQueryHandler
+	FindAssetQueryHandler       *FindAssetQueryHandler
+	GetAssetsByTypeQueryHandler *GetAssetsByTypeQueryHandler
 }
 type AssetModuleHandlers struct{}
 type AssetModule struct {
@@ -29,6 +30,9 @@ func Init(db *sql.DB, eventBus *event_bus.Bus) *AssetModule {
 	FindAssetQueryHandler := &FindAssetQueryHandler{
 		Repository: repository,
 	}
+	GetAssetsByTypeQueryHandler := &GetAssetsByTypeQueryHandler{
+		Repository: repository,
+	}
 	// AssetEvents := &AssetEvents{
 	// 	EventBus: eventBus,
 	// }
@@ -38,7 +42,8 @@ func Init(db *sql.DB, eventBus *event_bus.Bus) *AssetModule {
 			CreateAssetCommandHandler: CreateAssetCommandHandler,
 		},
 		Queries: AssetModuleQueries{
-			FindAssetQueryHandler: FindAssetQueryHandler,
+			FindAssetQueryHandler:       FindAssetQueryHandler,
+			GetAssetsByTypeQueryHandler: GetAssetsByTypeQueryHandler,
 		},
 		Handlers: AssetModuleHandlers{},
 	}
