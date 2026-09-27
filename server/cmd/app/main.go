@@ -10,6 +10,7 @@ import (
 	"investment-dashboard/internal/asset"
 	"investment-dashboard/internal/events"
 	"investment-dashboard/pkg/event_bus"
+	"investment-dashboard/pkg/scheduler"
 )
 
 func main() {
@@ -27,7 +28,9 @@ func main() {
 	defer db.Close()
 
 	eventBus := event_bus.NewBus()
-
+	scheduler := scheduler.New()
+	// TODO: подключить слушатели эвента обновления цены
+	// подключить в шедулер задачу обновления цены для крипто активов
 	bybitAdapter := bybit_adapter.New()
 	price, err := bybitAdapter.GetPrice("BTC")
 	if err != nil {

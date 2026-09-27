@@ -36,3 +36,26 @@ func (a *CreateAssetEventHandler) Handle(_event interfaces.Event[CreateAssetEven
 
 	return nil
 }
+
+type UpdatePricesEventHandler struct {
+	Repository interfaces.Repository[EventRecord, EventFilter]
+}
+
+type UpdatePricesEvent = *asset.UpdatePricesEvent
+
+func (a *UpdatePricesEventHandler) Handle(_event interfaces.Event[UpdatePricesEvent]) error {
+	log.Println("updatePricesEvent", _event)
+	payId, err := uuid.Parse(_event.Payload.AssetID)
+	if err != nil {
+		return err
+	}
+	event, err := Create("asset.price-updated", "assets", &payId, _event.Payload)
+	if err != nil {
+		return err
+	}
+	_, err = a.Repository.Save(context.Background(), event.ToRecord())
+	if err != nil {
+		return err
+	}
+	return nil
+}

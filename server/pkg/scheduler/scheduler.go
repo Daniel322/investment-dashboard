@@ -16,13 +16,18 @@ type Scheduler struct {
 	jobs map[string]Job
 }
 
-func (instance *Scheduler) AddJob(name string, callback func() error, interval time.Duration) {
-	stop := instance.launch(callback, interval)
+func New() *Scheduler {
+	return &Scheduler{
+		jobs: make(map[string]Job),
+	}
+}
+
+func (instance *Scheduler) Add(name string, callback func() error, interval time.Duration) {
 	instance.jobs[name] = Job{
 		Name:     name,
 		Callback: callback,
 		Interval: interval,
-		Stop:     stop,
+		Stop:     instance.launch(callback, interval),
 	}
 }
 

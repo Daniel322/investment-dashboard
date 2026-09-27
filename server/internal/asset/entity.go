@@ -52,6 +52,26 @@ func Create(name string, slug string, type_ string, price_ *int, rate_ *int) (*A
 	return asset, err
 }
 
+func FromRecord(record *AssetRecord) (*Asset, error) {
+	assetType, err := asset_type.New(record.Type)
+	if err != nil {
+		return nil, err
+	}
+	price := price.New(record.Price)
+	rate := rate.New(record.Rate)
+
+	return &Asset{
+		ID:        uuid.MustParse(record.ID),
+		Name:      record.Name,
+		Slug:      record.Slug,
+		Price:     price,
+		Rate:      rate,
+		Type:      assetType,
+		CreatedAt: record.CreatedAt,
+		UpdatedAt: record.UpdatedAt,
+	}, nil
+}
+
 func (a *Asset) ToRecord() *AssetRecord {
 
 	return &AssetRecord{
