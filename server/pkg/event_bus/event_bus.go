@@ -16,14 +16,16 @@ func NewBus() *Bus {
 	return &Bus{subs: make(map[string]map[chan interfaces.Event[any]]struct{})}
 }
 
-func (b *Bus) SubscribeHandlers(handlers map[string]interfaces.EventHandler[any]) {
+func (b *Bus) SubscribeHandlers(handlers map[string][]interfaces.EventHandler[any]) {
 	for topic, handler := range handlers {
-		go func(topic string, handler interfaces.EventHandler[any]) {
+		go func(topic string, handlers []interfaces.EventHandler[any]) {
 			ch, unsubscribe := b.subscribe(topic, 1000)
 			defer unsubscribe()
 			for ev := range ch {
-				if err := handler.Handle(ev); err != nil {
-					log.Println("error in event handler:", topic, err)
+				for _, handler := range handlers {
+					if err := handler.Handle(ev); err != nil {
+						log.Println("error in event handler:", topic, err)
+					}
 				}
 			}
 		}(topic, handler)

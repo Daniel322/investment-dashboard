@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	bybit_adapter "investment-dashboard/infrastructure/adapters/bybit"
 	"investment-dashboard/infrastructure/config"
@@ -28,9 +29,6 @@ func main() {
 	defer db.Close()
 
 	eventBus := event_bus.NewBus()
-	scheduler := scheduler.New()
-	// TODO: подключить слушатели эвента обновления цены
-	// подключить в шедулер задачу обновления цены для крипто активов
 	bybitAdapter := bybit_adapter.New()
 	price, err := bybitAdapter.GetPrice("BTC")
 	if err != nil {
@@ -39,10 +37,12 @@ func main() {
 	log.Println(*price)
 
 	eventsModule := events.Init(db)
-	assetModule := asset.Init(db, eventBus)
-	log.Println(assetModule)
-	handlers := map[string]interfaces.EventHandler[any]{
-		"asset.created": interfaces.AdaptHandler(eventsModule.Handlers.CreateAssetEventHandler),
+	assetModule := asset.Init(db, eventBus, bybitAdapter)
+	scheduler := scheduler.New()
+	scheduler.Add("update-crypto-prices", assetModule.Jobs.UpdateCryptoPricesJob.Run, 10*time.Second)
+	handlers := map[string][]interfaces.EventHandler[any]{
+		"asset.created":       {interfaces.AdaptHandler(eventsModule.Handlers.CreateAssetEventHandler)},
+		"asset.price-updated": {interfaces.AdaptHandler(assetModule.Handlers.UpdatePricesEventHandler), interfaces.AdaptHandler(eventsModule.Handlers.UpdatePricesEventHandler)},
 	}
 	// create all handlers map
 	eventBus.SubscribeHandlers(handlers)
@@ -61,7 +61,7 @@ func main() {
 	// }
 	// log.Println(res)
 
-	// for i := 0; i < 10; i++ {
-	// 	time.Sleep(1 * time.Second)
-	// }
+	for i := 0; i < 10; i++ {
+		time.Sleep(1 * time.Minute)
+	}
 }

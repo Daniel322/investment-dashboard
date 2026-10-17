@@ -41,7 +41,7 @@ type UpdatePricesEventHandler struct {
 	Repository interfaces.Repository[EventRecord, EventFilter]
 }
 
-type UpdatePricesEvent = *asset.UpdatePricesEvent
+type UpdatePricesEvent = asset.UpdatePricesEvent
 
 func (a *UpdatePricesEventHandler) Handle(_event interfaces.Event[UpdatePricesEvent]) error {
 	log.Println("updatePricesEvent", _event)

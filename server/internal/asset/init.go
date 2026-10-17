@@ -2,6 +2,7 @@ package asset
 
 import (
 	"database/sql"
+	"investment-dashboard/pkg/asset_type"
 	"investment-dashboard/pkg/event_bus"
 )
 
@@ -12,14 +13,21 @@ type AssetModuleQueries struct {
 	FindAssetQueryHandler       *FindAssetQueryHandler
 	GetAssetsByTypeQueryHandler *GetAssetsByTypeQueryHandler
 }
-type AssetModuleHandlers struct{}
+type AssetModuleHandlers struct {
+	UpdatePricesEventHandler *UpdatePricesEventHandler
+}
+
+type AssetModuleJobs struct {
+	UpdateCryptoPricesJob *UpdatePricesJob
+}
 type AssetModule struct {
 	Commands AssetModuleCommands
 	Queries  AssetModuleQueries
 	Handlers AssetModuleHandlers
+	Jobs     AssetModuleJobs
 }
 
-func Init(db *sql.DB, eventBus *event_bus.Bus) *AssetModule {
+func Init(db *sql.DB, eventBus *event_bus.Bus, adapter Adapter) *AssetModule {
 	repository := &AssetRepository{
 		db: db,
 	}
@@ -33,6 +41,15 @@ func Init(db *sql.DB, eventBus *event_bus.Bus) *AssetModule {
 	GetAssetsByTypeQueryHandler := &GetAssetsByTypeQueryHandler{
 		Repository: repository,
 	}
+	UpdatePricesEventHandler := &UpdatePricesEventHandler{
+		Repository: repository,
+	}
+	UpdateCryptoPricesJob := NewUpdatePricesJob(
+		adapter,
+		asset_type.Crypto,
+		*GetAssetsByTypeQueryHandler,
+		eventBus,
+	)
 	// AssetEvents := &AssetEvents{
 	// 	EventBus: eventBus,
 	// }
@@ -45,6 +62,11 @@ func Init(db *sql.DB, eventBus *event_bus.Bus) *AssetModule {
 			FindAssetQueryHandler:       FindAssetQueryHandler,
 			GetAssetsByTypeQueryHandler: GetAssetsByTypeQueryHandler,
 		},
-		Handlers: AssetModuleHandlers{},
+		Handlers: AssetModuleHandlers{
+			UpdatePricesEventHandler: UpdatePricesEventHandler,
+		},
+		Jobs: AssetModuleJobs{
+			UpdateCryptoPricesJob: UpdateCryptoPricesJob,
+		},
 	}
 }

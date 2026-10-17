@@ -4,10 +4,11 @@ import (
 	"context"
 	"investment-dashboard/interfaces"
 	"investment-dashboard/pkg/asset_type"
+	"log"
 )
 
 type Adapter interface {
-	GetPrice(slug string) (float64, error)
+	GetPrice(slug string) (*interfaces.GetPriceResponse, error)
 }
 
 type UpdatePricesJob struct {
@@ -22,7 +23,7 @@ type UpdatePricesEvent struct {
 	Price   float64
 }
 
-func New(
+func NewUpdatePricesJob(
 	adapter Adapter,
 	type_ asset_type.AssetType,
 	handler GetAssetsByTypeQueryHandler,
@@ -37,6 +38,7 @@ func New(
 }
 
 func (job *UpdatePricesJob) Run() error {
+	log.Println("UpdatePricesJob.Run")
 	ctx := context.Background()
 	jobTypeStr := job.type_.String()
 	assets, err := job.handler.Handle(ctx, GetAssetsByTypeQuery{
@@ -54,7 +56,7 @@ func (job *UpdatePricesJob) Run() error {
 			Topic: "asset.price-updated",
 			Payload: UpdatePricesEvent{
 				AssetID: asset.ID,
-				Price:   price,
+				Price:   price.Price,
 			},
 		})
 	}

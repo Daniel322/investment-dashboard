@@ -3,6 +3,7 @@ package bybit_adapter
 import (
 	"encoding/json"
 	"fmt"
+	"investment-dashboard/interfaces"
 	"io"
 	"net/http"
 	"strconv"
@@ -11,16 +12,11 @@ import (
 type BybitAdapter struct {
 }
 
-type GetPriceResponse struct {
-	Slug  string  `json:"slug"`
-	Price float64 `json:"price"`
-}
-
 func New() *BybitAdapter {
 	return &BybitAdapter{}
 }
 
-func (adapter *BybitAdapter) GetPrice(slug string) (*GetPriceResponse, error) {
+func (adapter *BybitAdapter) GetPrice(slug string) (*interfaces.GetPriceResponse, error) {
 	response, err := http.Get(fmt.Sprintf("https://api.bybit.com/v5/market/tickers?category=spot&symbol=%s", adapter.slugToSymbol(slug)))
 	if err != nil {
 		return nil, err
@@ -45,7 +41,7 @@ func (adapter *BybitAdapter) GetPrice(slug string) (*GetPriceResponse, error) {
 		return nil, err
 	}
 
-	return &GetPriceResponse{
+	return &interfaces.GetPriceResponse{
 		Slug:  slug,
 		Price: price,
 	}, nil
