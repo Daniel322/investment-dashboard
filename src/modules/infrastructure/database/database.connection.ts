@@ -6,10 +6,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Pool, type PoolClient } from 'pg';
-import { IConnection } from './database.interface';
+import { IDatabaseConnection } from './database.interface';
+import { Context } from '@common/context/context';
 
 @Injectable()
-export class DatabaseConnection implements OnModuleInit, OnApplicationShutdown, IConnection {
+export class DatabaseConnection implements OnModuleInit, OnApplicationShutdown, IDatabaseConnection {
   private readonly logger = new Logger(DatabaseConnection.name);
   private readonly pool: Pool;
   constructor(configService: ConfigService) {
@@ -42,33 +43,52 @@ export class DatabaseConnection implements OnModuleInit, OnApplicationShutdown, 
     this.logger.log('Database connection shut down');
   }
 
-  public getPool(): Pool {
-    return this.pool;
+  public async startTransaction(context: Context): Promise<void> {
+    const poolClient = context.pool ?? await this.pool.connect();
+    await poolClient.query('BEGIN');
+    context.setPool(poolClient);
+    poolClient.on('error', (error) => {
+      this.logger.error(`Error on pool client (${context.requestId}):`, error);
+      poolClient.release();
+    });
   }
 
-  public async query<T>(query: string, params: any[]): Promise<T> {
-    const client = await this.pool.connect();
-    const result = await client.query(query, params);
-    client.release();
-    return result.rows as T;
-  }
-  
-   /** Runs work inside BEGIN/COMMIT (ROLLBACK on error). */
-   public async withTransaction<T>(
-    fn: (client: PoolClient) => Promise<T>,
-  ): Promise<T> {
-    const client = await this.pool.connect();
+  public async commitTransaction(context: Context): Promise<void> {
+    const poolClient = context.pool!;
     try {
-      await client.query('BEGIN');
-      const result = await fn(client);
-      await client.query('COMMIT');
-      return result;
+      await poolClient.query('COMMIT');
     } catch (error) {
-      await client.query('ROLLBACK');
+      this.logger.error(`Error on commit transaction (${context.requestId}):`, error);
+    } finally {
+      poolClient.release();
+    }
+  }
+
+  public async rollbackTransaction(context: Context): Promise<void> {
+    const poolClient = context.pool!;
+    try {
+      await poolClient.query('ROLLBACK');
+    } catch (error) {
+      this.logger.error(`Error on rollback transaction (${context.requestId}):`, error);
+    } finally {
+      poolClient.release();
+    }
+  }
+
+  public async query<T>(context: Context, query: string, params?: unknown[]): Promise<T[]> {
+    let isQueryInTransaction = context.pool ? true : false;
+    const poolClient = context.pool ?? await this.pool.connect();
+    try {
+      const result = await poolClient.query(query, params);
+
+      return result.rows as T[];
+    } catch (error) {
       this.logger.error(error);
       throw error;
     } finally {
-      client.release();
+      if (!isQueryInTransaction) {
+        poolClient.release();
+      }
     }
   }
 }

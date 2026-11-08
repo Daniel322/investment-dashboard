@@ -1,14 +1,14 @@
 import { Module, DynamicModule, Global } from '@nestjs/common';
 import { DatabaseConnection } from './database.connection';
+import { IDatabaseConnection } from './database.interface';
 
 @Global()
 @Module({})
 export class DatabaseModule {
-  public static forRootAsync(): DynamicModule {
+  public static forRoot(): DynamicModule {
     const databaseConnectionProvider = {
-      provide: 'DATABASE_CONNECTION',
-      useFactory: (connection: DatabaseConnection) => connection.getPool(),
-      inject: [DatabaseConnection],
+      provide: IDatabaseConnection,
+      useExisting: DatabaseConnection,
     };
 
     return {
@@ -17,7 +17,7 @@ export class DatabaseModule {
         DatabaseConnection,
         databaseConnectionProvider,
       ],
-      exports: ['DATABASE_CONNECTION'],
+      exports: [IDatabaseConnection],
     };
   }
 }
