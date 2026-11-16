@@ -8,8 +8,8 @@ const db = registerAs('db', () => ({
 export const EnvConfig: ConfigModuleOptions = {
   isGlobal: true,
   validationSchema: z.object({
-    PORT: z.number().default(3000),
-    DB_URL: z.string(),
+    PORT: z.coerce.number().default(3000),
+    DB_URL: z.string().min(1),
   }),
   load: [db],
 };
