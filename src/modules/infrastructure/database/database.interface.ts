@@ -1,10 +1,15 @@
-import { Context } from "@common/context/context";
+import { IContext } from '@common/context/context.interface';
+import { Result } from '@common/utils/result';
 
 export const IDatabaseConnection = Symbol('IDatabaseConnection');
 
 export type IDatabaseConnection = {
-  query<T>(context: Context, query: string, params?: unknown[]): Promise<T[]>;
-  startTransaction(context: Context): Promise<void>;
-  commitTransaction(context: Context): Promise<void>;
-  rollbackTransaction(context: Context): Promise<void>;
+  query<T>(
+    context: IContext,
+    query: string,
+    params?: unknown[],
+  ): Promise<Result<T[], Error>>;
+  startTransaction(context: IContext): Promise<Result<void, Error>>;
+  commitTransaction(context: IContext): Promise<Result<void, Error>>;
+  rollbackTransaction(context: IContext): Promise<Result<void, Error>>;
 };

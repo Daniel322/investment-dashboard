@@ -5,12 +5,15 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Pool } from 'pg';
-import { Context } from '@common/context/context';
+import { Pool, PoolClient } from 'pg';
+import { IContext } from '@common/context/context.interface';
+import { Result } from '@common/utils/result';
 import { IDatabaseConnection } from './database.interface';
 
 @Injectable()
-export class DatabaseConnection implements OnModuleInit, OnApplicationShutdown, IDatabaseConnection {
+export class DatabaseConnection
+  implements OnModuleInit, OnApplicationShutdown, IDatabaseConnection
+{
   private readonly logger = new Logger(DatabaseConnection.name);
   private readonly pool: Pool;
 
@@ -20,7 +23,10 @@ export class DatabaseConnection implements OnModuleInit, OnApplicationShutdown, 
       connectionTimeoutMillis: 5000,
     });
     this.pool.on('error', (error) => {
-      this.logger.error('Unexpected error on idle database client', error.stack);
+      this.logger.error(
+        'Unexpected error on idle database client',
+        error.stack,
+      );
     });
   }
 
@@ -52,51 +58,87 @@ export class DatabaseConnection implements OnModuleInit, OnApplicationShutdown, 
     this.logger.log('Database connection shut down');
   }
 
-  public async query<T>(context: Context, query: string, params?: unknown[]): Promise<T[]> {
-    const client = context.getClient();
-    const result = client
-      ? await client.query(query, params)
-      : await this.pool.query(query, params);
+  public async query<T>(
+    context: IContext,
+    query: string,
+    params?: unknown[],
+  ): Promise<Result<T[], Error>> {
+    try {
+      const client = context.getClient();
+      const result = client
+        ? await client.query(query, params)
+        : await this.pool.query(query, params);
 
-    return result.rows as T[];
+      return Result.success(result.rows as T[]);
+    } catch (error) {
+      return Result.fail(this.toError(error));
+    }
   }
 
-  public async startTransaction(context: Context): Promise<void> {
+  public async startTransaction(
+    context: IContext,
+  ): Promise<Result<void, Error>> {
     if (context.getClient()) {
-      throw new Error(`Transaction already started (${context.requestId})`);
+      return Result.fail(
+        new Error(`Transaction already started (${context.requestId})`),
+      );
     }
 
-    const client = await this.pool.connect();
+    let client: PoolClient;
+    try {
+      client = await this.pool.connect();
+    } catch (error) {
+      return Result.fail(this.toError(error));
+    }
+
     try {
       await client.query('BEGIN');
-      context.setClient(client);
+      const setClientResult = context.setClient(client);
+      if (setClientResult.isExceptional()) {
+        client.release(setClientResult.exception);
+        return Result.fail(setClientResult.exception);
+      }
+
+      return Result.success();
     } catch (error) {
-      client.release(this.toError(error));
-      throw error;
+      const exception = this.toError(error);
+      client.release(exception);
+      return Result.fail(exception);
     }
   }
 
-  public async commitTransaction(context: Context): Promise<void> {
-    await this.finishTransaction(context, 'COMMIT');
+  public async commitTransaction(
+    context: IContext,
+  ): Promise<Result<void, Error>> {
+    return this.finishTransaction(context, 'COMMIT');
   }
 
-  public async rollbackTransaction(context: Context): Promise<void> {
-    await this.finishTransaction(context, 'ROLLBACK');
+  public async rollbackTransaction(
+    context: IContext,
+  ): Promise<Result<void, Error>> {
+    return this.finishTransaction(context, 'ROLLBACK');
   }
 
-  private async finishTransaction(context: Context, statement: 'COMMIT' | 'ROLLBACK'): Promise<void> {
+  private async finishTransaction(
+    context: IContext,
+    statement: 'COMMIT' | 'ROLLBACK',
+  ): Promise<Result<void, Error>> {
     const client = context.getClient();
     if (!client) {
-      throw new Error(`No active transaction (${context.requestId})`);
+      return Result.fail(
+        new Error(`No active transaction (${context.requestId})`),
+      );
     }
 
     context.clearClient();
     try {
       await client.query(statement);
       client.release();
+      return Result.success();
     } catch (error) {
-      client.release(this.toError(error));
-      throw error;
+      const exception = this.toError(error);
+      client.release(exception);
+      return Result.fail(exception);
     }
   }
 

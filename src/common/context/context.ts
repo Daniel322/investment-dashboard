@@ -1,6 +1,8 @@
-import { PoolClient } from "pg";
+import { PoolClient } from 'pg';
+import { IContext } from './context.interface';
+import { Result } from '../utils/result';
 
-export class Context {
+export class Context implements IContext {
   public readonly requestId: string;
   private client?: PoolClient;
 
@@ -12,15 +14,19 @@ export class Context {
     return this.client;
   }
 
-  public setClient(client: PoolClient): void {
+  public setClient(client: PoolClient): Result<void, Error> {
     if (this.client) {
-      throw new Error(`Transaction already started (${this.requestId})`);
+      return Result.fail(
+        new Error(`Transaction already started (${this.requestId})`),
+      );
     }
 
     this.client = client;
+    return Result.success();
   }
 
-  public clearClient(): void {
+  public clearClient(): Result<void, Error> {
     this.client = undefined;
+    return Result.success();
   }
 }
