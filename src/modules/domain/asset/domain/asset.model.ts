@@ -1,5 +1,5 @@
-import { AssetRecord } from "./asset.record";
-import { EAssetType } from "./e-asset-type";
+import { AssetRecord } from './asset.record';
+import { EAssetType } from './e-asset-type';
 
 export class Asset {
   public readonly id: string;

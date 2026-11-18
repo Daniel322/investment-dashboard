@@ -16,6 +16,6 @@ import { AssetModule } from '@domain/asset/asset.module';
       provide: APP_PIPE,
       useClass: ValidationPipe,
     },
-  ]
+  ],
 })
 export class AppModule {}

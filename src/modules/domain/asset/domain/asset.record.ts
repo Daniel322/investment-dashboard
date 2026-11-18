@@ -1,4 +1,4 @@
-import { EAssetType } from "./e-asset-type";
+import { EAssetType } from './e-asset-type';
 
 export type AssetRecord = {
   id: string;

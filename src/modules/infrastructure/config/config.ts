@@ -1,5 +1,5 @@
-import { ConfigModuleOptions, registerAs } from "@nestjs/config";
-import { z } from "zod";
+import { ConfigModuleOptions, registerAs } from '@nestjs/config';
+import { z } from 'zod';
 
 const db = registerAs('db', () => ({
   url: process.env.DB_URL,

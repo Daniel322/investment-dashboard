@@ -13,10 +13,7 @@ export class DatabaseModule {
 
     return {
       module: DatabaseModule,
-      providers: [
-        DatabaseConnection,
-        databaseConnectionProvider,
-      ],
+      providers: [DatabaseConnection, databaseConnectionProvider],
       exports: [IDatabaseConnection],
     };
   }
