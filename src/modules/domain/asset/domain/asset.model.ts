@@ -1,5 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { AssetRecord } from './asset.record';
 import { EAssetType } from './e-asset-type';
+
+type CreateAssetData = Pick<AssetRecord, 'name' | 'slug' | 'type' | 'rate' | 'price'>;
 
 export class Asset {
   public readonly id: string;
@@ -11,19 +14,28 @@ export class Asset {
   public readonly createdAt: Date;
   public readonly updatedAt: Date;
 
-  constructor(record: AssetRecord) {
-    this.id = record.id;
-    this.name = record.name;
-    this.slug = record.slug;
-    this.type = record.type;
-    this.price = record.price;
-    this.rate = record.rate;
-    this.createdAt = record.created_at;
-    this.updatedAt = record.updated_at;
+  constructor({
+    id = randomUUID(),
+    name,
+    slug,
+    type,
+    rate,
+    price,
+    created_at = new Date(),
+    updated_at = new Date(),
+  }: AssetRecord) {
+    this.id = id;
+    this.name = name;
+    this.slug = slug;
+    this.type = type;
+    this.price = price;
+    this.rate = rate;
+    this.createdAt = created_at;
+    this.updatedAt = updated_at;
   }
 
-  public static create(record: AssetRecord): Asset {
-    return new Asset(record);
+  public static create(record: CreateAssetData): Asset {
+    return new Asset(record as AssetRecord);
   }
 
   public static fromRecord(record: AssetRecord): Asset {
